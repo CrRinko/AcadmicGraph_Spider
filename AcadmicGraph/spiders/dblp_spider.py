@@ -19,6 +19,7 @@ class DblpSpider(scrapy.Spider):
             yield response.follow(discipline_link[index], callback=self.parse_discipline,
                                   meta={'genre': disciplines[index]})
 
+    # 爬取CCF推荐目录的各个领域分类目录
     def parse_discipline(self, response):
         links = response.css(".x-list3 a")
         for link in links:
@@ -38,6 +39,7 @@ class DblpSpider(scrapy.Spider):
             elif (re.match('http://dblp.uni-trier.de/db/journals/', href)):
                 yield scrapy.Request(href, callback=self.parse_dblp_journals, meta={'part_of': name})
 
+    # 爬取会议目录
     def parse_dblp_conf(self, response):
         confs = response.css(".data")
         for conf in confs:
@@ -53,11 +55,13 @@ class DblpSpider(scrapy.Spider):
                 date_published=datePublished,
                 isbn=isbn,
                 authors=authors,
-                part_of=response.meta['part_of']
+                part_of=response.meta['part_of'],
+                source_href=response.url
             )
             if re.match('http://dblp.uni-trier.de/db/conf/', contents):
                 yield scrapy.Request(contents, callback=self.parse_dblp_conf_details, meta={'part_of': title})
 
+    # 爬取会议详细文章列表
     def parse_dblp_conf_details(self, response):
         papers = response.css(".data")
         for paper in papers[1::]:
@@ -76,8 +80,10 @@ class DblpSpider(scrapy.Spider):
             loader.add_value("date_published", date_published)
             loader.add_value("header", headers)
             loader.add_value("part_of", response.meta['part_of'])
+            loader.add_value("source_href", response.url)
             yield loader.load_item()
 
+    # 爬取期刊目录
     def parse_dblp_journals(self, response):
         volumes = response.css(".clear-both~ ul a")
         for volume in volumes:
@@ -88,6 +94,7 @@ class DblpSpider(scrapy.Spider):
                 meta['header'] = header
                 yield scrapy.Request(link, callback=self.parse_dblp_journals_details, meta=meta)
 
+    # 爬取期刊文章列表
     def parse_dblp_journals_details(self, response):
         papers = response.css(".data")
         for paper in papers:
