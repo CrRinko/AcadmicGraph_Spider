@@ -17,14 +17,22 @@ class AcadmicgraphItem(scrapy.Item):
     pass
 
 
-class JournalPaperItem(scrapy.Item):
+class PaperItem(scrapy.Item):
     title = Field()
     authors = Field(input_processor=MapCompose(lambda author_name: (author_name, 'Unknown')))
     pagination = Field()
     date_published = Field()
-    header = Field()
+    header = Field(input_processor=MapCompose(lambda header: header), output_processor=Join(", "))
     part_of = Field()
 
+
+class ConferenceItem(scrapy.Item):
+    title = Field()
+    publisher = Field()
+    date_published = Field()
+    isbn = Field()
+    authors = Field()
+    part_of = Field()
 
 class CCFIndexItem(scrapy.Item):
     name = Field()

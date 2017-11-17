@@ -3,8 +3,9 @@
 import scrapy
 import re
 from scrapy.loader import ItemLoader
-from AcadmicGraph.items import JournalPaperItem
+from AcadmicGraph.items import PaperItem
 from AcadmicGraph.items import CCFIndexItem
+from  AcadmicGraph.items import ConferenceItem
 
 
 class DblpSpider(scrapy.Spider):
@@ -32,15 +33,9 @@ class DblpSpider(scrapy.Spider):
             loader.add_value("genre", response.meta['genre'])
             loader.add_value("href", href)
             yield loader.load_item()
-            # yield CCFIndexItem(name=name,level=level,type=type,genre=response.meta['genre'],href=href)
-            # if(re.match('http://dblp.uni-trier.de/db/conf/',href)):
-            #     yield scrapy.Request(href,callback=self.parse_dblp_conf,meta={
-            #         'genre':response.meta['genre'],
-            #         'publication':name,
-            #         'level':level,
-            #         'type':type
-            #     })
-            if (re.match('http://dblp.uni-trier.de/db/journals/', href)):
+            if (re.match('http://dblp.uni-trier.de/db/conf/', href)):
+                yield scrapy.Request(href, callback=self.parse_dblp_conf, meta={"part_of": name})
+            elif (re.match('http://dblp.uni-trier.de/db/journals/', href)):
                 yield scrapy.Request(href, callback=self.parse_dblp_journals, meta={'part_of': name})
 
     def parse_dblp_conf(self, response):
@@ -50,9 +45,38 @@ class DblpSpider(scrapy.Spider):
             publisher = conf.css("span[itemprop=publisher]::text").extract_first()
             datePublished = conf.css("span[itemprop=datePublished]::text").extract_first()
             isbn = conf.css("span[itemprop=isbn]::text").extract_first()
+            authors = conf.xpath("span[@itemprop='author']//*/text()").extract()
             contents = conf.xpath('./a[re:test(text(),"contents")]/@href').extract_first()
+            yield ConferenceItem(
+                title=title,
+                publisher=publisher,
+                date_published=datePublished,
+                isbn=isbn,
+                authors=authors,
+                part_of=response.meta['part_of']
+            )
             if re.match('http://dblp.uni-trier.de/db/conf/', contents):
-                pass
+                yield scrapy.Request(contents, callback=self.parse_dblp_conf_details, meta={'part_of': title})
+
+    def parse_dblp_conf_details(self, response):
+        papers = response.css(".data")
+        for paper in papers[1::]:
+            title = paper.css("span.title::text").extract_first()
+            authors = paper.xpath("span[@itemprop='author']//*/text()").extract()
+            date_published = paper.xpath("meta[@itemprop='datePublished']/@content").extract_first()
+            headers = [
+                paper.xpath("../../preceding-sibling::header[h2][1]//text()").extract_first(),
+                paper.xpath("../../preceding-sibling::header[h3][1]//text()").extract_first(),
+            ]
+            pagination = paper.css("span[itemprop=pagination]::text").extract_first()
+            loader = ItemLoader(item=PaperItem(), response=response)
+            loader.add_value("title", title)
+            loader.add_value("authors", authors)
+            loader.add_value("pagination", pagination)
+            loader.add_value("date_published", date_published)
+            loader.add_value("header", headers)
+            loader.add_value("part_of", response.meta['part_of'])
+            yield loader.load_item()
 
     def parse_dblp_journals(self, response):
         volumes = response.css(".clear-both~ ul a")
@@ -71,12 +95,13 @@ class DblpSpider(scrapy.Spider):
             pagination = paper.css("span[itemprop=pagination]::text").extract_first()
             authors = paper.xpath("span[@itemprop='author']//*/text()").extract()
             date_published = paper.xpath("meta[@itemprop='datePublished']/@content").extract_first()
-            header = paper.xpath("../../preceding-sibling::header[1]/*/text()").extract_first()
-            loader = ItemLoader(item=JournalPaperItem(), response=response)
+            headers = [response.meta['header'],
+                       paper.xpath("../../preceding-sibling::header[1]/*/text()").extract_first()]
+            loader = ItemLoader(item=PaperItem(), response=response)
             loader.add_value("title", title)
             loader.add_value("authors", authors)
             loader.add_value("pagination", pagination)
             loader.add_value("date_published", date_published)
-            loader.add_value("header", response.meta['header'] + ', ' + header)
+            loader.add_value("header", headers)
             loader.add_value("part_of", response.meta['part_of'])
             yield loader.load_item()
