@@ -2,15 +2,28 @@
 
 import scrapy
 import re
+import logging
 from scrapy.loader import ItemLoader
-from AcadmicGraph.items import PaperItem
-from AcadmicGraph.items import CCFIndexItem
-from  AcadmicGraph.items import ConferenceItem
+from AcadmicGraph.items import *
 
 
 class DblpSpider(scrapy.Spider):
     name = "dblp"
-    start_urls = ['http://www.ccf.org.cn/xspj/gyml/']
+
+    def __init__(self, urls=None, *args, **kwargs):
+        super(DblpSpider, self).__init__(*args, **kwargs)
+        self.urls = urls
+
+    def start_requests(self):
+        if self.urls is None:
+            yield scrapy.Request('http://www.ccf.org.cn/xspj/gyml/', callback=self.parse)
+        else:
+            with open(self.urls, 'r') as url_file:
+                for url in url_file:
+                    if re.match('http://dblp.uni-trier.de/db/conf/', url):
+                        yield scrapy.Request(url, callback=self.parse_dblp_conf, meta={'part_of': None})
+                    elif re.match('http://dblp.uni-trier.de/db/journals/', url):
+                        yield scrapy.Request(url, callback=self.parse_dblp_journals, meta={'part_of': None})
 
     def parse(self, response):
         disciplines = response.css(".m-snv li a::text")[2:-1].extract()
@@ -34,10 +47,10 @@ class DblpSpider(scrapy.Spider):
             loader.add_value("genre", response.meta['genre'])
             loader.add_value("href", href)
             yield loader.load_item()
-            if (re.match('http://dblp.uni-trier.de/db/conf/', href)):
-                yield scrapy.Request(href, callback=self.parse_dblp_conf, meta={"part_of": name})
-            elif (re.match('http://dblp.uni-trier.de/db/journals/', href)):
-                yield scrapy.Request(href, callback=self.parse_dblp_journals, meta={'part_of': name})
+            if re.match('http://dblp.uni-trier.de/db/conf/', href):
+                yield scrapy.Request(href, callback=self.parse_dblp_conf, meta={"part_of": name, "level": level})
+            elif re.match('http://dblp.uni-trier.de/db/journals/', href):
+                yield scrapy.Request(href, callback=self.parse_dblp_journals, meta={'part_of': name, "level": level})
 
     # 爬取会议目录
     def parse_dblp_conf(self, response):
@@ -59,7 +72,9 @@ class DblpSpider(scrapy.Spider):
                 source_href=response.url
             )
             if re.match('http://dblp.uni-trier.de/db/conf/', contents):
-                yield scrapy.Request(contents, callback=self.parse_dblp_conf_details, meta={'part_of': title})
+                meta = response.meta.copy()
+                meta['part_of'] = title
+                yield scrapy.Request(contents, callback=self.parse_dblp_conf_details, meta=meta)
 
     # 爬取会议详细文章列表
     def parse_dblp_conf_details(self, response):
@@ -73,6 +88,8 @@ class DblpSpider(scrapy.Spider):
                 paper.xpath("../../preceding-sibling::header[h3][1]//text()").extract_first(),
             ]
             pagination = paper.css("span[itemprop=pagination]::text").extract_first()
+            view_href = paper.xpath(
+                './preceding-sibling::nav[@class="publ"][1]/ul/li[1]/div[@class="head"]/a/@href').extract_first()
             loader = ItemLoader(item=PaperItem(), response=response)
             loader.add_value("title", title)
             loader.add_value("authors", authors)
@@ -81,7 +98,14 @@ class DblpSpider(scrapy.Spider):
             loader.add_value("header", headers)
             loader.add_value("part_of", response.meta['part_of'])
             loader.add_value("source_href", response.url)
-            yield loader.load_item()
+            loader.add_value("view_href", view_href)
+            loader.add_value("level", response.meta['level'])
+            item = loader.load_item()
+            if view_href is not None:
+                yield scrapy.Request(view_href, callback=self.parse_paper_detail_general,
+                                     meta={"item": item, "dont_obey_robotstxt": True})
+            else:
+                yield item
 
     # 爬取期刊目录
     def parse_dblp_journals(self, response):
@@ -104,6 +128,8 @@ class DblpSpider(scrapy.Spider):
             date_published = paper.xpath("meta[@itemprop='datePublished']/@content").extract_first()
             headers = [response.meta['header'],
                        paper.xpath("../../preceding-sibling::header[1]/*/text()").extract_first()]
+            view_href = paper.xpath(
+                './preceding-sibling::nav[@class="publ"][1]/ul/li[1]/div[@class="head"]/a/@href').extract_first()
             loader = ItemLoader(item=PaperItem(), response=response)
             loader.add_value("title", title)
             loader.add_value("authors", authors)
@@ -111,4 +137,19 @@ class DblpSpider(scrapy.Spider):
             loader.add_value("date_published", date_published)
             loader.add_value("header", headers)
             loader.add_value("part_of", response.meta['part_of'])
-            yield loader.load_item()
+            loader.add_value("view_href", view_href)
+            loader.add_value("level", response.meta['level'])
+            item = loader.load_item()
+            if view_href is not None:
+                yield scrapy.Request(view_href, callback=self.parse_paper_detail_general,
+                                     meta={"item": item, "dont_obey_robotstxt": True})
+            else:
+                yield item
+
+    def parse_paper_detail_general(self, response):
+        item = response.meta['item']
+        item['view_href'] = response.url
+        yield item
+
+    def errback_robots_forbidden(self, failure):
+        logging.error(failure)

@@ -51,9 +51,9 @@ DOWNLOAD_DELAY = 1
 
 # Enable or disable downloader middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
-# DOWNLOADER_MIDDLEWARES = {
-#    'AcadmicGraph.middlewares.MyCustomDownloaderMiddleware': 543,
-# }
+DOWNLOADER_MIDDLEWARES = {
+    'AcadmicGraph.middlewares.RobotsForbiddeMiddlewares': None,
+}
 
 # Enable or disable extensions
 # See http://scrapy.readthedocs.org/en/latest/topics/extensions.html
@@ -64,8 +64,13 @@ DOWNLOAD_DELAY = 1
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    'AcadmicGraph.pipelines.CheckNullFieldPipeline': 300,
+    'AcadmicGraph.pipelines.CheckNullFieldPipeline': 100,
+    'AcadmicGraph.pipelines.ViewHrefCountingPipeline': 200
 }
+
+# Configure AcadmicGraph.pipelines.ViewHrefCountingPipeline
+SIMPLE_SIZE = 100
+LEVELS = ['A', 'B']
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See http://doc.scrapy.org/en/latest/topics/autothrottle.html

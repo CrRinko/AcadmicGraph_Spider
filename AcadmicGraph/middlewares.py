@@ -5,7 +5,9 @@
 # See documentation in:
 # http://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
+import re
 from scrapy import signals
+from scrapy.exceptions import IgnoreRequest
 
 
 class AcadmicgraphSpiderMiddleware(object):
@@ -54,3 +56,11 @@ class AcadmicgraphSpiderMiddleware(object):
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
+
+
+class RobotsForbiddeMiddlewares(object):
+    def process_response(self, request, response, spider):
+        if re.match('https://doi.org', request.url):
+            if response is None:
+                raise IgnoreRequest()
+        pass

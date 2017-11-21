@@ -20,6 +20,8 @@ class PaperItem(scrapy.Item):
     header = Field(input_processor=MapCompose(lambda header: header), output_processor=Join(", "))
     part_of = Field()
     source_href = Field()  # 数据来源地址
+    view_href = Field()
+    level = Field()
 
 
 # 会议
@@ -40,3 +42,9 @@ class CCFIndexItem(scrapy.Item):
     type = Field(input_processor=MapCompose(lambda origin: origin[-2:]))
     genre = Field()
     href = Field()
+
+
+class PaperAttachedItem(scrapy.Item):
+    source_href = Field()
+    redirect_href = Field()
+    authors = Field()
