@@ -36,10 +36,15 @@ class DblpSpider(scrapy.Spider):
     def parse_discipline(self, response):
         links = response.css(".x-list3 a")
         for link in links:
-            name = link.xpath("../preceding-sibling::div[2]/text()").extract()
-            level = link.xpath("../../../preceding-sibling::h3[1]/text()").extract()
-            type = link.xpath("../../../preceding-sibling::h4[2]/text()").extract()
+            name = link.xpath("../preceding-sibling::div[2]/text()").extract_first()
+            level = link.xpath("../../../preceding-sibling::h3[1]/text()").extract_first()
+            type = link.xpath("../../../preceding-sibling::h4[2]/text()").extract_first()
             href = link.css("::attr(href)").extract_first()
+            level = re.match('\w', level).group()
+            if type == '中国计算机学会推荐国际学术刊物':
+                type = 'journal'
+            elif type == '中国计算机学会推荐国际学术会议':
+                type = 'conference'
             loader = ItemLoader(item=CCFIndexItem(), response=response)
             loader.add_value("name", name)
             loader.add_value("level", level)

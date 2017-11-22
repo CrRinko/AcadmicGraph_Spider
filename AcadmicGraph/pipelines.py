@@ -32,9 +32,10 @@ class CheckNullFieldPipeline(object):
 class ViewHrefCountingPipeline(object):
     @classmethod
     def from_crawler(cls, crawler):
-        return ViewHrefCountingPipeline(crawler.settings.getint('SIMPLE_SIZE'), crawler.settings.getlist('LEVELS'))
+        return ViewHrefCountingPipeline(crawler.settings.getint('VIEW_COUNTING_SIMPLE_SIZE'),
+                                        crawler.settings.getlist('VIEW_COUNTING_LEVELS'))
 
-    def __init__(self, simple_size, levels=['A', 'B', 'C']):
+    def __init__(self, simple_size, levels=None):
         self.websites = dict()
         self.pattern = re.compile("http[s]://.*/")
         self.count = 0
@@ -43,8 +44,10 @@ class ViewHrefCountingPipeline(object):
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def process_item(self, item, spider):
-        if isinstance(item, PaperItem) and item['level'] in self.levels:
-            site = self.pattern.match(item['view_href'])
+        if isinstance(item, PaperItem):
+            if self.levels is not None and item['level'] not in self.levels:
+                return item
+            site = self.pattern.match(item['view_href']).group()
             if site not in self.websites.keys():
                 self.websites[site] = {
                     'count': 0,

@@ -38,8 +38,8 @@ class ConferenceItem(scrapy.Item):
 # CCF推荐目录上的会议/期刊
 class CCFIndexItem(scrapy.Item):
     name = Field()
-    level = Field(input_processor=MapCompose(lambda origin: origin[0]))
-    type = Field(input_processor=MapCompose(lambda origin: origin[-2:]))
+    level = Field()
+    type = Field()
     genre = Field()
     href = Field()
 
