@@ -18,7 +18,7 @@ class CheckNullFieldPipeline(object):
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def process_item(self, item, spider):
-        if isinstance(item, (PaperItem, ConferenceItem)):
+        if isinstance(item, (PaperItem, ConferenceItem, JournalItem)):
             null_field_names = []
             for field_name, value in item.items():
                 if value is None:
