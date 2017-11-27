@@ -73,7 +73,6 @@ ITEM_PIPELINES = {
 
 # Configure AcadmicGraph.pipelines.ViewHrefCountingPipeline
 VIEW_COUNTING_SIMPLE_SIZE = 100
-VIEW_COUNTING_LEVELS = ['A', 'B']
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See http://doc.scrapy.org/en/latest/topics/autothrottle.html

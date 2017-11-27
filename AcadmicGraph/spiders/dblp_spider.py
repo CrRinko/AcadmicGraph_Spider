@@ -81,7 +81,7 @@ class DblpSpider(scrapy.Spider):
                 genre=response.meta['genre'],
                 short_name=response.meta['short_name']
             )
-            if re.match('http://dblp.uni-trier.de/db/conf/', contents):
+            if contents is not None and re.match('http://dblp.uni-trier.de/db/conf/', contents):
                 yield scrapy.Request(contents, callback=self.parse_dblp_conf_details,
                                      meta={"part_of": title, "level": response.meta["level"]})
 
@@ -103,6 +103,7 @@ class DblpSpider(scrapy.Spider):
             loader.add_value("part_of", response.meta['part_of'])
             loader.add_value("source_href", response.url)
             loader.add_value("view_href", view_href)
+            loader.add_value("type", "paper")
             loader.add_value("level", response.meta['level'])
             item = loader.load_item()
             if view_href is not None:
@@ -161,6 +162,7 @@ class DblpSpider(scrapy.Spider):
             loader.add_value("date_published", date_published)
             loader.add_value("part_of", response.meta['part_of'])
             loader.add_value("view_href", view_href)
+            loader.add_value("source_href", response.url)
             loader.add_value("level", response.meta['level'])
             loader.add_value("type", "paper")
             item = loader.load_item()

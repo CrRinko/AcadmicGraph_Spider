@@ -7,9 +7,7 @@
 
 import re
 import logging
-from scrapy import settings
 from AcadmicGraph.items import *
-from AcadmicGraph.spiders.dblp_spider import DblpSpider
 
 
 # 检查PaperItem和ConferenceItem的字段，警告其中字段为空的项
@@ -20,33 +18,30 @@ class CheckNullFieldPipeline(object):
     def process_item(self, item, spider):
         if isinstance(item, (PaperItem, ConferenceItem, JournalItem)):
             null_field_names = []
-            for field_name, value in item.items():
-                if value is None:
+            for field_name in item.fields:
+                if field_name not in item:
                     null_field_names.append(field_name)
-                if len(null_field_names) > 0:
-                    self.logger.warning("%s (%s) has null fields: %s [source=%s]" % (
-                        item.__class__.__name__, item['title'], ', '.join(null_field_names), item['source_href']))
+            if len(null_field_names) > 0:
+                self.logger.warning("%s (%s) has null fields: %s [source=%s]" % (
+                    item.__class__.__name__, item['title'], ', '.join(null_field_names), item['source_href']))
         return item
 
 
 class ViewHrefCountingPipeline(object):
     @classmethod
     def from_crawler(cls, crawler):
-        return ViewHrefCountingPipeline(crawler.settings.getint('VIEW_COUNTING_SIMPLE_SIZE'),
-                                        crawler.settings.getlist('VIEW_COUNTING_LEVELS'))
+        return ViewHrefCountingPipeline(crawler.settings.getint('VIEW_COUNTING_SIMPLE_SIZE'))
 
-    def __init__(self, simple_size, levels=None):
+    def __init__(self, simple_size):
         self.websites = dict()
-        self.pattern = re.compile("http[s]://.*/")
+        self.pattern = re.compile(
+            "^((http://)|(https://))?([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}(:\d+)?(/)")
         self.count = 0
         self.simple_size = simple_size
-        self.levels = levels
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def process_item(self, item, spider):
-        if isinstance(item, PaperItem):
-            if self.levels is not None and item['level'] not in self.levels:
-                return item
+        if isinstance(item, PaperItem) and "view_href" in item:
             site = self.pattern.match(item['view_href']).group()
             if site not in self.websites.keys():
                 self.websites[site] = {
@@ -55,7 +50,7 @@ class ViewHrefCountingPipeline(object):
                 }
             self.websites[site]['count'] += 1
             self.count += 1
-            if self.count % self.max_print_count == 0:
+            if self.count % self.simple_size == 0:
                 self.logger.info("Websites in %d simples:\n%s" % (self.count, self.websites))
         return item
 
