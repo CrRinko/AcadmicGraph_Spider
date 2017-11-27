@@ -32,7 +32,7 @@ DOWNLOAD_DELAY = 0.5
 # CONCURRENT_REQUESTS_PER_IP = 16
 
 # Disable cookies (enabled by default)
-# COOKIES_ENABLED = False
+COOKIES_ENABLED = False
 
 # Disable Telnet Console (enabled by default)
 # TELNETCONSOLE_ENABLED = False
@@ -52,7 +52,8 @@ DOWNLOAD_DELAY = 0.5
 # Enable or disable downloader middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
-    'AcadmicGraph.middlewares.RobotsForbiddeMiddlewares': None,
+    'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
+    'AcadmicGraph.middlewares.RotateUserAgentMiddleware': 500
 }
 
 # RetryDownloaderMiddleware settings
