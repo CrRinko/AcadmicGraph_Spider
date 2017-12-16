@@ -19,14 +19,17 @@ class CheckNullFieldPipeline(object):
         if isinstance(item, (PaperItem, ConferenceItem, JournalItem)):
             null_field_names = []
             for field_name in item.fields:
-                if field_name not in item:
+                if field_name not in item or item[field_name] is None or item[field_name] == '' or item[
+                    field_name] == [] or item[field_name] == ['']:
                     null_field_names.append(field_name)
+                    item[field_name] = None
             if len(null_field_names) > 0:
                 self.logger.warning("%s (%s) has null fields: %s [source=%s]" % (
                     item.__class__.__name__, item['title'], ', '.join(null_field_names), item['source_href']))
         return item
 
 
+# 统计论文详情页的网站分布
 class ViewHrefCountingPipeline(object):
     @classmethod
     def from_crawler(cls, crawler):
@@ -41,7 +44,7 @@ class ViewHrefCountingPipeline(object):
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def process_item(self, item, spider):
-        if isinstance(item, PaperItem) and "view_href" in item:
+        if isinstance(item, PaperItem) and "view_href" in item and item["view_href"] is not None:
             site = self.pattern.match(item['view_href']).group()
             if site not in self.websites.keys():
                 self.websites[site] = {

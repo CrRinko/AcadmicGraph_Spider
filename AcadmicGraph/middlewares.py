@@ -59,6 +59,7 @@ class AcadmicgraphSpiderMiddleware(object):
         spider.logger.info('Spider opened: %s' % spider.name)
 
 
+# 随机更换Agent
 class RotateUserAgentMiddleware(UserAgentMiddleware):
     def __init__(self, user_agent=''):
         self.user_agent = user_agent

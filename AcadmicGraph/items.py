@@ -18,16 +18,19 @@ class PaperItem(scrapy.Item):
     view_href = Field()
     level = Field()
     type = Field()
+    # citation_count=Field()
+    affiliation = Field()
 
 
 # 会议
 class ConferenceItem(scrapy.Item):
     title = Field()
+    sub_title = Field()
     publisher = Field()
     date_published = Field()
     isbn = Field()
     authors = Field()
-    part_of = Field()
+    # part_of = Field()
     source_href = Field()  # 数据来源地址
     level = Field()
     type = Field()
@@ -38,10 +41,10 @@ class ConferenceItem(scrapy.Item):
 # 期刊
 class JournalItem(scrapy.Item):
     title = Field()
-    volume = Field()
-    number = Field()
-    date_published = Field()
-    part_of = Field()
+    # volume = Field()
+    # number = Field()
+    # date_published = Field()
+    # part_of = Field()
     source_href = Field()  # 数据来源地址
     publisher = Field()
     level = Field()
