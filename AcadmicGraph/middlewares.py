@@ -5,9 +5,9 @@
 # See documentation in:
 # http://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
-import re
-from scrapy import signals
 import random
+
+from scrapy import signals
 from scrapy.downloadermiddlewares.useragent import UserAgentMiddleware
 
 

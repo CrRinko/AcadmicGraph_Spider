@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import re
-from scrapy.loader import ItemLoader
-from AcadmicGraph.items import *
-from selenium import webdriver
-import time
+
 from bs4 import BeautifulSoup
+from selenium import webdriver
+
+from AcadmicGraph.items import *
+
 
 class DblpSpider(scrapy.Spider):
     name = "dblp"
@@ -14,6 +15,7 @@ class DblpSpider(scrapy.Spider):
         super(DblpSpider, self).__init__(*args, **kwargs)
         self.urls = urls
         self.crawl_level = level
+        self.driver = webdriver.PhantomJS()
         # self.logger=logging.getLogger(self.__class__.__name__)
 
     def start_requests(self):
@@ -87,7 +89,7 @@ class DblpSpider(scrapy.Spider):
                                      meta={"part_of": [response.meta['name'], sub_title],
                                            "level": response.meta["level"]})
 
-    # 爬取会议详细文章列表
+    # 爬取会议详细论文列表
     def parse_dblp_conf_details(self, response):
         papers = response.css(".data")
         for paper in papers[1::]:
@@ -134,7 +136,7 @@ class DblpSpider(scrapy.Spider):
                 yield scrapy.Request(link, callback=self.parse_dblp_journals_details,
                                      meta={'part_of': [item['title']], "level": response.meta['level']})
 
-    # 爬取期刊文章列表
+    # 爬取期刊论文列表
     def parse_dblp_journals_details(self, response):
         papers = response.css(".data")
         for paper in papers:
@@ -163,7 +165,7 @@ class DblpSpider(scrapy.Spider):
             else:
                 yield item
 
-    # 爬取文章详情页（）
+    # 爬取论文详情页（）
     def parse_paper_detail_general(self, response):
         item = response.meta['item']
         item['view_href'] = response.url
@@ -177,6 +179,7 @@ class DblpSpider(scrapy.Spider):
             item = self.parse_paper_detail_www_sciencedirect_com(response)
         yield item
 
+    # 以下是爬取各个出版商提供的论文详情页的方法
     def parse_paper_detail_dl_acm_org(self, response):
         item = response.meta['item']
         affiliation = response.css('small::text').extract()
@@ -185,12 +188,12 @@ class DblpSpider(scrapy.Spider):
 
     def parse_paper_detail_ieeexplore_ieee_org(self, response):
         item = response.meta['item']
-        driver = webdriver.PhantomJS()
-        driver.get(response.url)
-        time.sleep(1)
-        driver.find_element_by_link_text("Authors").click()
-        time.sleep(1)
-        html = driver.page_source
+        # driver = webdriver.PhantomJS()
+        self.driver.get(response.url)
+        # time.sleep(1)
+        self.driver.find_element_by_link_text("Authors").click()
+        # time.sleep(1)
+        html = self.driver.page_source
         soup = BeautifulSoup(html, 'lxml')
         tags = soup.find_all('div', class_='carousel-item ng-scope')
         affiliation = []

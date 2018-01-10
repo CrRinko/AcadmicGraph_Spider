@@ -7,7 +7,9 @@
 
 import scrapy
 from scrapy import Field
-# 文章
+
+
+# 论文
 class PaperItem(scrapy.Item):
     title = Field()
     authors = Field()
@@ -51,12 +53,3 @@ class JournalItem(scrapy.Item):
     type = Field()
     genre = Field()
     short_name = Field()
-
-
-# CCF推荐目录上的会议/期刊
-class CCFIndexItem(scrapy.Item):
-    name = Field()
-    level = Field()
-    type = Field()
-    genre = Field()
-    href = Field()
